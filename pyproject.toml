@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "credit-default-mlops"
+version = "0.1.0"
+description = "Предсказание дефолта клиентов кредитных карт"
+requires-python = ">=3.11,<3.12"
+dependencies = ["pandas==2.1.4", "xlrd==2.0.1", "great-expectations==1.3.8"]
+
+[project.optional-dependencies]
+dev = ["black==24.10.0", "flake8==7.1.1", "pytest==8.3.3"]
+eda = ["matplotlib==3.8.0", "jupyterlab>=4,<5"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
