@@ -17,3 +17,24 @@ models/*
 .ipynb_checkpoints/
 build/
 dist/
+
+catboost_info/
+
+# Автоматические отчёты сохраняем локально.
+reports/**
+!reports/experiments/
+!reports/experiments/seed_17/
+!reports/experiments/seed_42/
+!reports/figures/
+!reports/figures/experiments/
+!reports/baseline.json
+!reports/experiments/seed_17/fold_metrics.csv
+!reports/experiments/seed_42/conditional_metrics.csv
+!reports/experiments/seed_42/fold_metrics.csv
+!reports/experiments/seed_42/review_capacity.csv
+!reports/experiments/seed_42/sigmoid_metrics.csv
+!reports/figures/experiments/calibration.png
+!reports/figures/experiments/model_comparison.png
+!reports/hypothesis_boosting_cv_folds.csv
+!reports/hypothesis_cv_folds.csv
+!reports/split_summary.json

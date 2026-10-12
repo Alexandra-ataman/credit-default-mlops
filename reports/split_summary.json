@@ -1,0 +1,13 @@
+{
+  "seed": 42,
+  "method": "StratifiedGroupKFold: first of 5 folds",
+  "rows": 30000,
+  "train_rows": 24004,
+  "test_rows": 5996,
+  "train_default_rate": 0.22004665889018496,
+  "test_default_rate": 0.22581721147431622,
+  "overlapping_ids": 0,
+  "overlapping_profiles": 0,
+  "conflicting_profiles": 21,
+  "input_sha256": "f7b7d22d1f8dd27dadb25d4b78d8a4ae7c441ab6cc12d1ea58c0efc54d4d1788"
+}

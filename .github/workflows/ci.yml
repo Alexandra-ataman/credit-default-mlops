@@ -21,3 +21,4 @@ jobs:
       - run: flake8 src tests
       - run: pytest -q
       - run: python -m credit_default.data
+      - run: python -m credit_default.split
