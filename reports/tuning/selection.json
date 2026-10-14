@@ -1,0 +1,14 @@
+{
+  "parameters": {
+    "model__subsample": 0.6,
+    "model__random_strength": 1,
+    "model__learning_rate": 0.02,
+    "model__l2_leaf_reg": 30,
+    "model__iterations": 600,
+    "model__depth": 7
+  },
+  "cv_auc": 0.7915759572594011,
+  "train_sha256": "96f10fe11392d5a5d51fcf84d64c50a3d9d172d5d65aea13ea6197ef04fe6195",
+  "control_cv_auc": 0.791414760764634,
+  "test_evaluated": false
+}

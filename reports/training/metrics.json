@@ -1,0 +1,20 @@
+{
+  "parameters": {
+    "model__l2_leaf_reg": 10,
+    "model__depth": 6
+  },
+  "cv_auc": 0.791414760764634,
+  "train_sha256": "96f10fe11392d5a5d51fcf84d64c50a3d9d172d5d65aea13ea6197ef04fe6195",
+  "threshold": 0.5,
+  "test": {
+    "ROC-AUC": 0.7783720598707963,
+    "AP": 0.5615481540943374,
+    "Brier": 0.1368217360687373,
+    "Recall@20%": 0.4985228951255539,
+    "Precision@20%": 0.5625,
+    "Precision": 0.675603217158177,
+    "Recall": 0.3722304283604136,
+    "F1": 0.48
+  },
+  "test_sha256": "84b396df5f00dcc82b8162788282a13e525f8e98df642678808533fface722e0"
+}

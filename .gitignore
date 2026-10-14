@@ -10,8 +10,11 @@ __pycache__/
 mlruns/
 mlartifacts/
 mlflow.db
-data/*
+data/**
 !data/.gitkeep
+!data/raw/
+!data/raw/*.dvc
+!data/raw/.gitignore
 models/*
 !models/.gitkeep
 .ipynb_checkpoints/
@@ -38,3 +41,13 @@ reports/**
 !reports/hypothesis_boosting_cv_folds.csv
 !reports/hypothesis_cv_folds.csv
 !reports/split_summary.json
+
+!reports/training/
+!reports/training/metrics.json
+!reports/training/search.csv
+!reports/training/roc.png
+!reports/monitoring.json
+
+!reports/tuning/
+!reports/tuning/search.csv
+!reports/tuning/selection.json

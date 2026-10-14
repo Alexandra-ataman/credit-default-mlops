@@ -1,0 +1,178 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m credit_default.data && python -m credit_default.split
+    deps:
+    - path: data/raw/clients.xls
+      hash: md5
+      md5: 25a64500f543274fd6c9db905bfeb968
+      size: 5539328
+    - path: src/credit_default/data.py
+      hash: md5
+      md5: 56b8b09f128d3bcf21ff79f97edbbd0f
+      size: 3876
+    - path: src/credit_default/split.py
+      hash: md5
+      md5: b91efe441a3eb0de714feef56bba6977
+      size: 4212
+    - path: src/credit_default/validation.py
+      hash: md5
+      md5: b58aabc8cd2f2dafb734facdfe2209dd
+      size: 4122
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: 1d03286c429c2f814f3f5759514cbe0d.dir
+      size: 5734633
+      nfiles: 3
+  train:
+    cmd: python -m credit_default.train
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 1d03286c429c2f814f3f5759514cbe0d.dir
+      size: 5734633
+      nfiles: 3
+    - path: pyproject.toml
+      hash: md5
+      md5: 9a6a20021ceaefdbead2db1fc3193a93
+      size: 1033
+    - path: reports/baseline.json
+      hash: md5
+      md5: 63b03a576c7c8d3aaf88e0e9aabcff25
+      size: 1735
+    - path: src/credit_default/data.py
+      hash: md5
+      md5: 56b8b09f128d3bcf21ff79f97edbbd0f
+      size: 3876
+    - path: src/credit_default/experiments.py
+      hash: md5
+      md5: ece9c6b876f2996c1dccd939d01b93e4
+      size: 8196
+    - path: src/credit_default/features.py
+      hash: md5
+      md5: 9df3b53ef070636ae8b39885f3d603f6
+      size: 3802
+    - path: src/credit_default/model.py
+      hash: md5
+      md5: 675aa981b22a1f17234978ed286d54e6
+      size: 675
+    - path: src/credit_default/split.py
+      hash: md5
+      md5: b91efe441a3eb0de714feef56bba6977
+      size: 4212
+    - path: src/credit_default/train.py
+      hash: md5
+      md5: ed6422fafa92a1a82786f65e8cb0cf8a
+      size: 7463
+    params:
+      params.json:
+        train:
+          seed: 42
+          depth:
+          - 4
+          - 6
+          - 8
+          l2_leaf_reg:
+          - 5
+          - 10
+          threshold: 0.5
+    outs:
+    - path: models/model.joblib
+      hash: md5
+      md5: 8f3cc31de369fc8a5806de65b16bb99c
+      size: 756889
+    - path: models/reference.json
+      hash: md5
+      md5: 1eff81b20c349496e4fabf1d2460b4f5
+      size: 466
+    - path: reports/training/metrics.json
+      hash: md5
+      md5: a1002f1e686e8248f16f3f739c26571d
+      size: 567
+  tune:
+    cmd: python -m credit_default.train --tune
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 6389c2d540e484898a2c8297796514c4
+      size: 2294724
+    - path: pyproject.toml
+      hash: md5
+      md5: 9a6a20021ceaefdbead2db1fc3193a93
+      size: 1033
+    - path: reports/baseline.json
+      hash: md5
+      md5: 63b03a576c7c8d3aaf88e0e9aabcff25
+      size: 1735
+    - path: src/credit_default/data.py
+      hash: md5
+      md5: 56b8b09f128d3bcf21ff79f97edbbd0f
+      size: 3876
+    - path: src/credit_default/experiments.py
+      hash: md5
+      md5: ece9c6b876f2996c1dccd939d01b93e4
+      size: 8196
+    - path: src/credit_default/features.py
+      hash: md5
+      md5: 9df3b53ef070636ae8b39885f3d603f6
+      size: 3802
+    - path: src/credit_default/model.py
+      hash: md5
+      md5: 675aa981b22a1f17234978ed286d54e6
+      size: 675
+    - path: src/credit_default/split.py
+      hash: md5
+      md5: b91efe441a3eb0de714feef56bba6977
+      size: 4212
+    - path: src/credit_default/train.py
+      hash: md5
+      md5: ed6422fafa92a1a82786f65e8cb0cf8a
+      size: 7463
+    params:
+      params.json:
+        tune:
+          seed: 42
+          trials: 16
+          control:
+            depth: 6
+            iterations: 600
+            learning_rate: 0.04
+            l2_leaf_reg: 10
+            random_strength: 1
+            subsample: 0.8
+          space:
+            depth:
+            - 4
+            - 5
+            - 6
+            - 7
+            iterations:
+            - 300
+            - 600
+            - 1000
+            learning_rate:
+            - 0.02
+            - 0.04
+            - 0.07
+            l2_leaf_reg:
+            - 3
+            - 10
+            - 30
+            random_strength:
+            - 0.2
+            - 1
+            - 3
+            subsample:
+            - 0.6
+            - 0.8
+            - 1.0
+    outs:
+    - path: models/candidate.joblib
+      hash: md5
+      md5: 78dd651f1c474b022e274a2f3be8f261
+      size: 1303792
+    - path: reports/tuning/selection.json
+      hash: md5
+      md5: 2ac197faf0dc487ee2a17c7081e44022
+      size: 388

@@ -1,0 +1,16 @@
+.git
+.dvc
+.venv
+**/__pycache__
+.pytest_cache
+data
+mlruns
+reports
+notebooks
+tests
+
+.env*
+models/*
+!models/model.joblib
+**/*.pyc
+**/*.egg-info
