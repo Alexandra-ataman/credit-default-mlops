@@ -5,7 +5,9 @@ import joblib
 import numpy as np
 import pandas as pd
 import pytest
+from fastapi.testclient import TestClient
 
+from credit_default.api import create_app
 from credit_default.data import PAY, TARGET
 from credit_default.experiments import RAW
 from credit_default.model import build_model
@@ -20,11 +22,14 @@ def test_metrics_use_probability_and_fixed_threshold():
     assert metrics["F1"] == pytest.approx(2 / 3)
 
 
-def test_saved_pipeline_accepts_raw_features(tmp_path):
+@pytest.mark.parametrize("kind", ["cat", "logreg"])
+def test_saved_pipeline_accepts_raw_features(tmp_path, kind):
     frame = pd.DataFrame(dict.fromkeys(RAW, range(1, 21)))
     frame = frame.assign(AGE=30, LIMIT_BAL=10000, SEX=1, EDUCATION=2, MARRIAGE=1)
     frame[PAY] = 0
-    model = build_model().set_params(model__iterations=3, model__depth=2)
+    model = build_model(kind=kind)
+    if kind == "cat":
+        model.set_params(model__iterations=3, model__depth=2)
     model.fit(frame, [0, 1] * 10)
     joblib.dump(model, tmp_path / "model.joblib")
     restored = joblib.load(tmp_path / "model.joblib")
@@ -32,6 +37,14 @@ def test_saved_pipeline_accepts_raw_features(tmp_path):
         model.predict_proba(frame), restored.predict_proba(frame)
     )
     assert len(restored.predict(frame.head(1))) == 1
+    with TestClient(create_app(tmp_path / "model.joblib")) as client:
+        response = client.post(
+            "/predict", json={"clients": frame.head(1).to_dict("records")}
+        )
+    assert response.status_code == 200
+    assert response.json()["predictions"][0]["probability"] == pytest.approx(
+        model.predict_proba(frame.head(1))[0, 1]
+    )
 
 
 def test_split_rejects_matching_profiles_and_ids():
@@ -48,3 +61,17 @@ def test_tuning_keeps_control_and_reproduces_candidates():
     assert choices == candidates(config)
     assert choices[0] == {f"model__{k}": [v] for k, v in config["control"].items()}
     assert len(choices) == config["trials"]
+
+
+@pytest.mark.parametrize("trials", [1, 2, 3])
+def test_tuning_replaces_repeated_control(trials):
+    config = {
+        "seed": 0,
+        "trials": trials,
+        "control": {"depth": 6},
+        "space": {"depth": [4, 5, 6]},
+    }
+    choices = candidates(config)
+    assert len(choices) == trials
+    assert choices[0] == {"model__depth": [6]}
+    assert len({p["model__depth"][0] for p in choices}) == trials

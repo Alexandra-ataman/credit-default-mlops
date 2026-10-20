@@ -46,6 +46,10 @@ reports/**
 !reports/training/metrics.json
 !reports/training/search.csv
 !reports/training/roc.png
+!reports/logreg/
+!reports/logreg/metrics.json
+!reports/logreg/search.csv
+!reports/logreg/roc.png
 !reports/monitoring.json
 
 !reports/tuning/

@@ -29,6 +29,26 @@ stages:
     metrics:
       - reports/training/metrics.json:
           cache: false
+  logreg:
+    cmd: python -m credit_default.train --logreg
+    deps:
+      - data/processed
+      - src/credit_default/train.py
+      - src/credit_default/model.py
+      - src/credit_default/experiments.py
+      - src/credit_default/features.py
+      - src/credit_default/data.py
+      - src/credit_default/split.py
+      - reports/baseline.json
+      - pyproject.toml
+    params:
+      - params.json:
+          - logreg
+    outs:
+      - models/logreg.joblib
+    metrics:
+      - reports/logreg/metrics.json:
+          cache: false
   tune:
     cmd: python -m credit_default.train --tune
     deps:

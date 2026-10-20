@@ -10,10 +10,11 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
 from credit_default.data import BILLS, PAY, PAYMENTS, TARGET
 from credit_default.features import (
@@ -76,9 +77,12 @@ def build_pipeline(model, feature_set, seed=42, parameters=None):
         )
         prepare = FunctionTransformer(native_categories)
     else:
+        numeric = SimpleImputer(strategy="median")
+        if model == "logreg":
+            numeric = Pipeline([("imputer", numeric), ("scaler", StandardScaler())])
         prepare = ColumnTransformer(
             [
-                ("num", SimpleImputer(strategy="median"), num),
+                ("num", numeric, num),
                 (
                     "cat",
                     OneHotEncoder(handle_unknown="ignore", sparse_output=False),
@@ -86,7 +90,11 @@ def build_pipeline(model, feature_set, seed=42, parameters=None):
                 ),
             ]
         )
-        if model == "hgb":
+        if model == "logreg":
+            estimator = LogisticRegression(
+                solver="liblinear", max_iter=1000, random_state=seed
+            )
+        elif model == "hgb":
             estimator = HistGradientBoostingClassifier(
                 max_iter=150,
                 max_leaf_nodes=15,

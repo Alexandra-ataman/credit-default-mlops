@@ -5,6 +5,11 @@
     "l2_leaf_reg": [5, 10],
     "threshold": 0.5
   },
+  "logreg": {
+    "seed": 42,
+    "C": [0.1, 1, 10],
+    "threshold": 0.5
+  },
   "tune": {
     "seed": 42,
     "trials": 16,

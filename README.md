@@ -31,6 +31,20 @@ RandomizedSearchCV перебирает шесть вариантов CatBoost �
 Порог 0,5 фиксирован; стоимость ошибок неизвестна.
 Результаты в `reports/training/`, модель в `models/model.joblib`.
 
+## Базовая модель
+
+```bash
+OMP_NUM_THREADS=2 dvc repro logreg
+```
+
+LogisticRegression использует Imputer, StandardScaler и OneHotEncoder.
+Они обучаются внутри Pipeline на тех же пяти блоках train.
+Подбираем C из трёх значений в `params.json`, затем оцениваем test.
+Параметры, метрики, ROC и модель записываются в MLflow (`logreg-baseline`).
+Отчёты в `reports/logreg/`, модель в `models/logreg.joblib`.
+CV ROC-AUC: 0,7779; test ROC-AUC: 0,7651. У CatBoost CV выше (0,7914),
+поэтому API использует CatBoost.
+
 ## Расширенный подбор
 
 ```bash
