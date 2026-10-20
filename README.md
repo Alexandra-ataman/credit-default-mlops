@@ -1,20 +1,100 @@
 # Credit Default
 
-Предсказание дефолта действующего клиента кредитной карты в следующем месяце.
-
+Прогноз дефолта клиента кредитной карты в следующем месяце.
 Данные: [Default of Credit Card Clients (UCI)](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients).
-Цель: `default.payment.next.month`. 1 означает дефолт, 0 означает его отсутствие.
+Цель `default.payment.next.month`: 1 означает дефолт, 0 означает его отсутствие.
 
-## Запуск
+## Установка и обучение
 
 Python 3.11.
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[dev,eda,experiments]'
+python -m pip install -e '.[dev,training,api]'
 GX_ANALYTICS_ENABLED=false python -m credit_default.data
-GX_ANALYTICS_ENABLED=false python -m credit_default.split
+GX_ANALYTICS_ENABLED=false OMP_NUM_THREADS=2 dvc repro train
+```
+
+DVC запускает подготовку и обучение, хранит версии данных и моделей.
+Кеш локальный. Для общего хранилища нужно настроить свой DVC remote.
+
+Train/test: около 80/20, seed=42. Одинаковые профили остаются вместе.
+Временной test недоступен: данные содержат один временной срез.
+RandomizedSearchCV перебирает шесть вариантов CatBoost на пяти блоках train.
+Признаки входят в сохранённый Pipeline. Test оцениваем после выбора параметров.
+
+| CV ROC-AUC | Test ROC-AUC | Precision | Recall | F1 |
+|---|---|---|---|---|
+| 0,7914 | 0,7784 | 0,6756 | 0,3722 | 0,4800 |
+
+Порог 0,5 фиксирован; стоимость ошибок неизвестна.
+Результаты в `reports/training/`, модель в `models/model.joblib`.
+
+## Расширенный подбор
+
+```bash
+OMP_NUM_THREADS=2 dvc repro tune
+```
+
+Сравниваем 15 случайных сочетаний и текущий контроль на пяти блоках train.
+Шесть параметров и их диапазоны заданы в `params.json`.
+Код общий с обучением: `train.py --tune`. Test не читается.
+Результаты в `reports/tuning/`, кандидат в `models/candidate.joblib`.
+
+CV ROC-AUC: 0,791576 против 0,791415 у контроля. Выигрыш на двух блоках из пяти.
+Прибавка мала, поэтому сохраняем исходную модель. Test выше относится к ней.
+
+## MLflow
+
+```bash
+mlflow ui --backend-store-uri ./mlruns --host 127.0.0.1 --port 5000
+```
+
+[MLflow](http://127.0.0.1:5000): эксперимент `credit-default` хранит параметры,
+CV-метрики каждого варианта, итоговые test-метрики, ROC и модель.
+Сравнивать варианты нужно по `cv_auc`.
+
+## API
+
+После обучения:
+
+```bash
+uvicorn credit_default.api:app --host 127.0.0.1 --port 8000
+```
+
+Или в Docker: `./scripts/run_api.sh`.
+
+[Документация API](http://127.0.0.1:8000/docs).
+`POST /predict` принимает `{"clients": [...]}`: от 1 до 1000 записей,
+каждая содержит 23 исходных признака без ID и цели.
+Ответ: `class` и `probability` для каждого клиента.
+`GET /health` возвращает состояние и хеш модели.
+
+## Мониторинг
+
+При запущенном API:
+
+```bash
+python -m credit_default.monitor --rows 1000
+```
+
+Часть test отправляем на API и считаем PSI вероятностей относительно train.
+Фон привязан к версии модели. Результат в `reports/monitoring.json`.
+Это имитация потока из того же среза; фон рассчитан на обучающем train.
+PSI показывает сдвиг распределения, но без новых ответов не измеряет качество.
+
+## Анализ
+
+| Ноутбук | Содержание |
+|---|---|
+| [01_eda](notebooks/01_eda.ipynb) | Качество данных, анализ train и гипотезы |
+| [02_experiments](notebooks/02_experiments.ipynb) | Сравнение моделей и выбор признаков |
+
+Для пересчёта исследования:
+
+```bash
+python -m pip install -e '.[eda,experiments]'
 python -m credit_default.hypotheses
 python -m credit_default.hypotheses --model boosting
 OMP_NUM_THREADS=2 python -m credit_default.experiments
@@ -24,42 +104,17 @@ OMP_NUM_THREADS=2 python -m credit_default.calibration --variant cat_base
 jupyter lab notebooks/
 ```
 
-## Анализ
+## Структура и проверки
 
-| Ноутбук | Содержание |
-|---|---|
-| [01_eda](notebooks/01_eda.ipynb) | Качество данных, разделение, анализ train и проверка гипотез |
-| [02_experiments](notebooks/02_experiments.ipynb) | Сравнение моделей, калибровка и ошибки |
-
-Train/test: около 80/20, seed=42. Одинаковые исходные профили остаются
-в одной выборке и одном блоке CV. Test не используется для выбора модели.
-Временная проверка невозможна: данные представлены одним общим срезом.
-
-Кандидат: CatBoost. Средний ROC-AUC 0,791 на пяти блоках train.
-При другом разбиении получаем 0,790. Это результаты CV, не итоговая оценка на test.
-Параметры в [baseline.json](reports/baseline.json).
-
-## Файлы
-
-| Папка | Содержание |
-|---|---|
-| `notebooks/` | Два последовательных этапа: анализ данных и выбор модели |
-| `src/credit_default/` | Загрузка и проверки данных, разделение, признаки, расчёты экспериментов |
-| `tests/` | Проверки данных, разделения, признаков и расчёта метрик |
-| `reports/` | Таблицы анализа и параметры выбранной модели в `baseline.json` |
-| `reports/figures/` | Графики анализа и экспериментов |
-| `reports/experiments/` | Метрики и настройки моделей по seed |
-| `data/` | Исходные и подготовленные данные, вне Git |
-| `.github/workflows/` | Автоматические проверки |
-
-Результаты экспериментов в `reports/experiments/`. Данные, списки ID
-и подробные отчёты создаются командами запуска. В Git сохранены основные метрики,
-два графика и параметры кандидата. Новые ячейки EDA сохранены без выводов.
-
-## Проверки
+`src/credit_default/`: данные, признаки, обучение, API и мониторинг.
+`tests/`: тесты. `notebooks/`: анализ. `reports/`: результаты.
+`data/` и `models/`: данные и модели под управлением DVC.
+Данные, модели и журнал MLflow не хранятся в Git.
 
 ```bash
 black --check src tests
 flake8 src tests
 pytest -q
 ```
+
+GitHub Actions запускает эти проверки и валидацию Great Expectations.

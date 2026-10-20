@@ -1,0 +1,51 @@
+stages:
+  prepare:
+    cmd: python -m credit_default.data && python -m credit_default.split
+    deps:
+      - data/raw/clients.xls
+      - src/credit_default/data.py
+      - src/credit_default/validation.py
+      - src/credit_default/split.py
+    outs:
+      - data/processed
+  train:
+    cmd: python -m credit_default.train
+    deps:
+      - data/processed
+      - src/credit_default/train.py
+      - src/credit_default/model.py
+      - src/credit_default/data.py
+      - pyproject.toml
+      - src/credit_default/features.py
+      - src/credit_default/experiments.py
+      - src/credit_default/split.py
+      - reports/baseline.json
+    params:
+      - params.json:
+          - train
+    outs:
+      - models/model.joblib
+      - models/reference.json
+    metrics:
+      - reports/training/metrics.json:
+          cache: false
+  tune:
+    cmd: python -m credit_default.train --tune
+    deps:
+      - data/processed/train.csv
+      - src/credit_default/train.py
+      - src/credit_default/model.py
+      - src/credit_default/features.py
+      - src/credit_default/experiments.py
+      - src/credit_default/data.py
+      - src/credit_default/split.py
+      - reports/baseline.json
+      - pyproject.toml
+    params:
+      - params.json:
+          - tune
+    outs:
+      - models/candidate.joblib
+    metrics:
+      - reports/tuning/selection.json:
+          cache: false
