@@ -34,11 +34,15 @@ def write_json(path, value):
 
 def candidates(config):
     sampled = ParameterSampler(
-        config["space"], config["trials"] - 1, random_state=config["seed"]
+        config["space"],
+        min(config["trials"], len(ParameterGrid(config["space"]))),
+        random_state=config["seed"],
     )
-    # Контроль всегда входит в поиск.
+    # Берём запасной вариант на случай повтора контроля.
     choices = [config["control"]] + [p for p in sampled if p != config["control"]]
-    return [{f"model__{k}": [v] for k, v in p.items()} for p in choices]
+    return [
+        {f"model__{k}": [v] for k, v in p.items()} for p in choices[: config["trials"]]
+    ]
 
 
 def check_split(train, test):
@@ -70,9 +74,12 @@ def save_roc(y, risk, path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, default=Path("params.json"))
-    parser.add_argument("--tune", action="store_true")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--tune", action="store_true")
+    modes.add_argument("--logreg", action="store_true")
     args = parser.parse_args()
-    config = json.loads(args.config.read_text())["tune" if args.tune else "train"]
+    mode = "tune" if args.tune else "logreg" if args.logreg else "train"
+    config = json.loads(args.config.read_text())[mode]
     train = pd.read_csv("data/processed/train.csv")
     train_hash = sha256("data/processed/train.csv")
     baseline = json.loads(Path("reports/baseline.json").read_text())
@@ -81,10 +88,13 @@ def main():
     space = (
         candidates(config)
         if args.tune
-        else {f"model__{k}": config[k] for k in ["depth", "l2_leaf_reg"]}
+        else {
+            f"model__{k}": config[k]
+            for k in (["C"] if args.logreg else ["depth", "l2_leaf_reg"])
+        }
     )
     search = RandomizedSearchCV(
-        build_model(config["seed"]),
+        build_model(config["seed"], kind="logreg" if args.logreg else "cat"),
         space,
         n_iter=len(ParameterGrid(space)),
         scoring="roc_auc",
@@ -92,14 +102,26 @@ def main():
         n_jobs=1,
         cv=StratifiedGroupKFold(5, shuffle=True, random_state=config["seed"]),
         error_score="raise",
+        verbose=1,
     )
-    output = Path("reports/tuning" if args.tune else "reports/training")
+    output = (
+        Path("reports")
+        / {"train": "training", "tune": "tuning", "logreg": "logreg"}[mode]
+    )
     output.mkdir(parents=True, exist_ok=True)
     Path("models").mkdir(exist_ok=True)
     mlflow.set_tracking_uri(Path("mlruns").resolve().as_uri())
     mlflow.set_experiment("credit-default")
-    with mlflow.start_run(run_name="expanded-search" if args.tune else "base-search"):
+    run_name = {
+        "train": "base-search",
+        "tune": "expanded-search",
+        "logreg": "logreg-baseline",
+    }[mode]
+    with mlflow.start_run(run_name=run_name):
         mlflow.log_params(config)
+        mlflow.log_param(
+            "model_type", "LogisticRegression" if args.logreg else "CatBoost"
+        )
         mlflow.set_tag("train_sha256", train_hash)
         search.fit(train[RAW], train[TARGET], groups=profile_groups(train))
         results = search.cv_results_
@@ -123,9 +145,8 @@ def main():
             "cv_auc": search.best_score_,
             "train_sha256": train_hash,
         }
-        model_path = Path(
-            "models/candidate.joblib" if args.tune else "models/model.joblib"
-        )
+        name = {"train": "model", "tune": "candidate", "logreg": "logreg"}[mode]
+        model_path = Path("models") / f"{name}.joblib"
         if args.tune:
             control = table.loc[
                 table[parameters].eq(pd.Series(config["control"])).all(axis=1)
@@ -151,7 +172,7 @@ def main():
             )
             model.threshold_ = config["threshold"]
         joblib.dump(model, model_path)
-        if not args.tune:
+        if mode == "train":
             # Фон PSI рассчитываем по train и привязываем к версии модели.
             train_risk = model.predict_proba(train[RAW])[:, 1]
             edges = np.unique(np.quantile(train_risk, np.linspace(0, 1, 11)))
@@ -168,7 +189,12 @@ def main():
         write_json(
             output / ("selection.json" if args.tune else "metrics.json"), selected
         )
-        mlflow.log_params(search.best_params_)
+        mlflow.log_params(
+            {
+                f"model__{k}": v
+                for k, v in model.named_steps["model"].get_params().items()
+            }
+        )
         mlflow.log_metric("cv_auc", search.best_score_)
         mlflow.log_artifacts(str(output))
         example = train[RAW].head(3)

@@ -47,24 +47,24 @@ stages:
       size: 3876
     - path: src/credit_default/experiments.py
       hash: md5
-      md5: ece9c6b876f2996c1dccd939d01b93e4
-      size: 8196
+      md5: fa8d35d3e5805fd348329ffd31d7b6b7
+      size: 8564
     - path: src/credit_default/features.py
       hash: md5
       md5: 9df3b53ef070636ae8b39885f3d603f6
       size: 3802
     - path: src/credit_default/model.py
       hash: md5
-      md5: 675aa981b22a1f17234978ed286d54e6
-      size: 675
+      md5: cafc12feb30281285f6789f82e298ce4
+      size: 686
     - path: src/credit_default/split.py
       hash: md5
       md5: b91efe441a3eb0de714feef56bba6977
       size: 4212
     - path: src/credit_default/train.py
       hash: md5
-      md5: ed6422fafa92a1a82786f65e8cb0cf8a
-      size: 7463
+      md5: f3d61b67806a18deef701bfdccf28da6
+      size: 8264
     params:
       params.json:
         train:
@@ -80,11 +80,11 @@ stages:
     outs:
     - path: models/model.joblib
       hash: md5
-      md5: 8f3cc31de369fc8a5806de65b16bb99c
+      md5: be62c245ae5b9c008df175a2ca3bdd33
       size: 756889
     - path: models/reference.json
       hash: md5
-      md5: 1eff81b20c349496e4fabf1d2460b4f5
+      md5: 65c99475efd536a4618b3ae1abbfad56
       size: 466
     - path: reports/training/metrics.json
       hash: md5
@@ -111,24 +111,24 @@ stages:
       size: 3876
     - path: src/credit_default/experiments.py
       hash: md5
-      md5: ece9c6b876f2996c1dccd939d01b93e4
-      size: 8196
+      md5: fa8d35d3e5805fd348329ffd31d7b6b7
+      size: 8564
     - path: src/credit_default/features.py
       hash: md5
       md5: 9df3b53ef070636ae8b39885f3d603f6
       size: 3802
     - path: src/credit_default/model.py
       hash: md5
-      md5: 675aa981b22a1f17234978ed286d54e6
-      size: 675
+      md5: cafc12feb30281285f6789f82e298ce4
+      size: 686
     - path: src/credit_default/split.py
       hash: md5
       md5: b91efe441a3eb0de714feef56bba6977
       size: 4212
     - path: src/credit_default/train.py
       hash: md5
-      md5: ed6422fafa92a1a82786f65e8cb0cf8a
-      size: 7463
+      md5: f3d61b67806a18deef701bfdccf28da6
+      size: 8264
     params:
       params.json:
         tune:
@@ -170,9 +170,67 @@ stages:
     outs:
     - path: models/candidate.joblib
       hash: md5
-      md5: 78dd651f1c474b022e274a2f3be8f261
+      md5: 1420b4aed48f8f90ab893f6d61b8afa1
       size: 1303792
     - path: reports/tuning/selection.json
       hash: md5
       md5: 2ac197faf0dc487ee2a17c7081e44022
       size: 388
+  logreg:
+    cmd: python -m credit_default.train --logreg
+    deps:
+    - path: data/processed
+      hash: md5
+      md5: 1d03286c429c2f814f3f5759514cbe0d.dir
+      size: 5734633
+      nfiles: 3
+    - path: pyproject.toml
+      hash: md5
+      md5: 9a6a20021ceaefdbead2db1fc3193a93
+      size: 1033
+    - path: reports/baseline.json
+      hash: md5
+      md5: 63b03a576c7c8d3aaf88e0e9aabcff25
+      size: 1735
+    - path: src/credit_default/data.py
+      hash: md5
+      md5: 56b8b09f128d3bcf21ff79f97edbbd0f
+      size: 3876
+    - path: src/credit_default/experiments.py
+      hash: md5
+      md5: fa8d35d3e5805fd348329ffd31d7b6b7
+      size: 8564
+    - path: src/credit_default/features.py
+      hash: md5
+      md5: 9df3b53ef070636ae8b39885f3d603f6
+      size: 3802
+    - path: src/credit_default/model.py
+      hash: md5
+      md5: cafc12feb30281285f6789f82e298ce4
+      size: 686
+    - path: src/credit_default/split.py
+      hash: md5
+      md5: b91efe441a3eb0de714feef56bba6977
+      size: 4212
+    - path: src/credit_default/train.py
+      hash: md5
+      md5: f3d61b67806a18deef701bfdccf28da6
+      size: 8264
+    params:
+      params.json:
+        logreg:
+          seed: 42
+          C:
+          - 0.1
+          - 1
+          - 10
+          threshold: 0.5
+    outs:
+    - path: models/logreg.joblib
+      hash: md5
+      md5: ad0c3ffe31fd203f052010a7a10134a8
+      size: 9257
+    - path: reports/logreg/metrics.json
+      hash: md5
+      md5: 75c148aa8f070b866f91e82838dbca53
+      size: 563
